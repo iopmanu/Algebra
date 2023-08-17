@@ -54,7 +54,7 @@ class DjkstraProcessor {
     using function_iterator = std::unordered_map<std::string, char>::const_iterator;
 
 private:
-    void tokenize_input(const std::string &input_sequence) {
+    void tokenizeInput(const std::string &input_sequence) {
         if (!output_sequence.empty()) output_sequence.clear();
         int16_t bracket_quantity = 0;
 
@@ -71,7 +71,7 @@ private:
                     continue;
                 }
 
-                auto function = get_valid_function(i, input_sequence);
+                auto function = getValidFunction(i, input_sequence);
                 exception_condition |= (function != available_functions.end());
 
                 if (exception_condition) {
@@ -88,7 +88,7 @@ private:
                 bracket_quantity--;
                 output_sequence.push_back(Token<char>(input_sequence[i]));
             } else if (std::isdigit(input_sequence[i])) {
-                auto digit_with_length = number_and_length(input_sequence, i);
+                auto digit_with_length = numberAndLength(input_sequence, i);
                 output_sequence.push_back(Token<double>(digit_with_length.first));
                 i += digit_with_length.second - 1;
             }
@@ -99,11 +99,11 @@ private:
                 const_cast<char *>("Invalid bracket sequence"));
     }
 
-    function_iterator get_valid_function(std::size_t current,
-                                         const std::string &sequence) const noexcept {
+    function_iterator getValidFunction(std::size_t current,
+                                       const std::string &sequence) const noexcept {
         function_iterator retval = available_functions.end();
         for (int j = 1;
-             (j < 4) && (j < sequence.size() - current) && (retval == available_functions.end());
+             (j <= 4) && (j < sequence.size() - current) && (retval == available_functions.end());
              j++) {
             retval = available_functions.find(sequence.substr(current, j));
         }
@@ -111,8 +111,8 @@ private:
         return retval;
     }
 
-    std::pair<double, std::size_t> number_and_length(const std::string &sequence,
-                                                     std::size_t current) {
+    std::pair<double, std::size_t> numberAndLength(const std::string &sequence,
+                                                   std::size_t current) const noexcept {
         std::size_t counter = current;
         for (; (counter < sequence.size()) && (std::isdigit(sequence[counter])); counter++)
             ;
@@ -132,7 +132,7 @@ public:
     DjkstraProcessor(DjkstraProcessor &&) = delete;
 
     void inverse_polish_notation(const std::string &input_sequence) {
-        tokenize_input(input_sequence);
+        tokenizeInput(input_sequence);
     }
 };
 }  // namespace preprocess

@@ -3,7 +3,7 @@
 
 int main() {
     auto parser = preprocess::DjkstraProcessor();
-    std::string expression = "(1 + 2) + 3 + cos(5)";
+    std::string expression = "((1 + 2) + 3 + tan(5)) * atan(6) * sqrt(5)";
     parser.inverse_polish_notation(expression);
     for (auto x : parser.output_sequence) {
         if (std::holds_alternative<preprocess::Token<double>>(x)) {
