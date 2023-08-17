@@ -54,8 +54,6 @@ class DjkstraProcessor {
     using function_iterator = std::unordered_map<std::string, char>::const_iterator;
 
 private:
-    token_storage output_sequence;
-
     void tokenize_input(const std::string &input_sequence) {
         if (!output_sequence.empty()) output_sequence.clear();
         int16_t bracket_quantity = 0;
@@ -64,12 +62,12 @@ private:
             if (input_sequence[i] == ' ')
                 continue;
             else if (input_sequence[i] == 'x')
-                output_sequence.push_back(Token(input_sequence[i]));
+                output_sequence.push_back(Token<char>(input_sequence[i]));
             else if (std::isalpha(input_sequence[i]) || is_operator(input_sequence[i])) {
                 bool exception_condition = true;
                 auto it = available_operators.find(input_sequence[i]);
                 if (exception_condition &= (it != available_operators.end())) {
-                    output_sequence.push_back(Token(*it));
+                    output_sequence.push_back(Token<char>(*it));
                     continue;
                 }
 
@@ -77,7 +75,7 @@ private:
                 exception_condition |= (function != available_functions.end());
 
                 if (exception_condition) {
-                    output_sequence.push_back(Token(function->second));
+                    output_sequence.push_back(Token<char>(function->second));
                     i += function->first.size() - 1;
                 } else {
                     throw new exceptions::InvalidFunctionException(
@@ -85,13 +83,13 @@ private:
                 }
             } else if (input_sequence[i] == '(') {
                 bracket_quantity++;
-                output_sequence.push_back(Token(input_sequence[i]));
+                output_sequence.push_back(Token<char>(input_sequence[i]));
             } else if (input_sequence[i] == ')') {
                 bracket_quantity--;
-                output_sequence.push_back(Token(input_sequence[i]));
+                output_sequence.push_back(Token<char>(input_sequence[i]));
             } else if (std::isdigit(input_sequence[i])) {
                 auto digit_with_length = number_and_length(input_sequence, i);
-                output_sequence.push_back(Token(digit_with_length.first));
+                output_sequence.push_back(Token<double>(digit_with_length.first));
                 i += digit_with_length.second - 1;
             }
         }
@@ -113,12 +111,13 @@ private:
         return retval;
     }
 
-    std::pair<double, std::size_t> number_and_length(std::string sequence, std::size_t current) {
+    std::pair<double, std::size_t> number_and_length(const std::string &sequence,
+                                                     std::size_t current) {
         std::size_t counter = current;
         for (; (counter < sequence.size()) && (std::isdigit(sequence[counter])); counter++)
             ;
         auto number_slice = sequence.substr(current, counter - current);
-        return std::pair<double, std::size_t>(std::stod(number_slice), current - counter);
+        return std::pair<double, std::size_t>(std::stod(number_slice), counter - current);
     }
 
     bool is_operator(char symbol) {
@@ -126,9 +125,15 @@ private:
     }
 
 public:
+    token_storage output_sequence;
+
     DjkstraProcessor() = default;
     DjkstraProcessor(const DjkstraProcessor &src) = delete;
     DjkstraProcessor(DjkstraProcessor &&) = delete;
+
+    void inverse_polish_notation(const std::string &input_sequence) {
+        tokenize_input(input_sequence);
+    }
 };
 }  // namespace preprocess
 
