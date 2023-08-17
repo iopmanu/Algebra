@@ -1,6 +1,6 @@
 #include <iostream>
-#include <vector>
 #include <variant>
+#include <vector>
 
 #include "processor.hpp"
 
@@ -10,7 +10,7 @@ int main() {
         v.push_back(1);
         v.push_back(std::string("LALALALA"));
     }
-    
+
     for (auto x : v) {
         if (std::holds_alternative<int>(x)) {
             std::cout << std::get<int>(x) << std::endl;
@@ -18,6 +18,6 @@ int main() {
             std::cout << std::get<std::string>(x) << std::endl;
         }
     }
-    
+
     return 0;
 }
