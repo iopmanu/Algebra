@@ -29,7 +29,7 @@ public:
 
         if ((is_binary_operator && second == std::numeric_limits<double>::max()) ||
             (!is_binary_operator && second != std::numeric_limits<double>::max())) {
-            throw std::logic_error("Invalid arguments quantity for this operator");
+                throw std::logic_error("Invalid arguments quantity for this operator");
         }
 
         return (is_binary_operator) ? processBinaryOperator(first, second)
@@ -97,15 +97,15 @@ protected:
     std::unordered_map<char, Operator> rules_ = default_algebra_function_rules;
 
 private:
-    virtual void initialize_rules(const std::unordered_map<char, Operator>& rules){};
+    virtual void initializeRules(const std::unordered_map<char, Operator>& rules){};
 
 public:
     IAlgebra() = default;
 
-    void initialize_rules_interface(
+    void initializeRulesInterface(
         const std::unordered_map<char, Operator>& rules = default_algebra_rules) {
         if (!rules.empty() && rules != default_algebra_function_rules) {
-            initialize_rules(rules);
+            initializeRules(rules);
         }
     }
 
@@ -126,7 +126,7 @@ public:
 
 class ClassicAlgebra : public IAlgebra {
 public:
-    void initialize_rules(const std::unordered_map<char, Operator>& rules) override {
+    void initializeRules(const std::unordered_map<char, Operator>& rules) override {
         rules_.insert(default_algebra_rules.begin(), default_algebra_rules.end());
     }
 };
