@@ -29,17 +29,67 @@ public:
                    ? processBinaryOperator(first, second)
                    : processMathFunction(first);
     }
+
+    bool operator==(const Operator& compare) const {
+        bool isSame = std::visit([](auto&& arg1, auto&& arg2) {
+            using T1 = std::decay_t<decltype(arg1)>;
+            using T2 = std::decay_t<decltype(arg2)>;
+
+            if constexpr (std::is_same_v<T1, T2>) {
+                return true;
+            } else {
+                return false;
+            }
+        }, action_, compare.action_);
+
+        return isSame;
+    }
+
+    bool operator!=(const Operator& compare) const {
+        return !operator==(compare);
+    }
+};
+
+inline const std::unordered_map<char, Operator> default_algebra_function_rules = {
+    {'s',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::sin(a); }))},
+    {'c',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::cos(a); }))},
+    {'t',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::tan(a); }))},
+    {'S',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::asin(a); }))},
+    {'C',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::acos(a); }))},
+    {'T',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::atan(a); }))},
+    {'q',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::sqrt(a); }))},
+    {'l',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::log10(a); }))},
+    {'L',
+     calculations::Operator(std::function<double(double)>([](double a) { return std::log(a); }))}};
+
+inline const std::unordered_map<char, Operator> default_algebra_rules = {
+
 };
 
 class IAlgebra {
 protected:
-    std::unordered_map<char, Operator> rules_;
+    std::unordered_map<char, Operator> rules_ = default_algebra_function_rules;
 
 private:
-    virtual void initialize_rules() = 0;
+    virtual void initialize_rules(){};
 
 public:
     IAlgebra() = default;
+
+    void initialize_rules_interface(
+        const std::unordered_map<char, Operator>& rules = default_algebra_function_rules) {
+        if (!rules.empty() && rules == default_algebra_function_rules) {
+            initialize_rules();
+        }
+    }
 
     Operator getRule(const char identifier) const {
         if (rules_.empty()) {
@@ -52,13 +102,16 @@ public:
         }
         return rule->second;
     }
+
+    virtual ~IAlgebra() {}
 };
 
 class ClassicAlgebra : public IAlgebra {
+public:
     void initialize_rules() override {
-        
+        rules_.insert(default_algebra_rules.begin(), default_algebra_rules.end());
     }
 };
-}
+}  // namespace calculations
 
 #endif
