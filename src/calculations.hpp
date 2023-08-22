@@ -12,10 +12,8 @@ using function = std::function<double(double)>;
 using binary_operator = std::function<double(double, double)>;
 
 class Operator {
-public:
+private:
     std::variant<function, binary_operator> action_;
-
-    Operator(std::variant<function, binary_operator> action) : action_(action) {}
 
     double processBinaryOperator(double first, double second) const {
         return std::get<binary_operator>(action_)(first, second);
@@ -24,12 +22,14 @@ public:
     double processMathFunction(double first) const { return std::get<function>(action_)(first); }
 
 public:
+    Operator(std::variant<function, binary_operator> action) : action_(action) {}
+
     double operator()(double first, double second = std::numeric_limits<double>::max()) const {
         bool is_binary_operator = std::holds_alternative<binary_operator>(action_);
 
         if ((is_binary_operator && second == std::numeric_limits<double>::max()) ||
             (!is_binary_operator && second != std::numeric_limits<double>::max())) {
-                throw std::logic_error("Invalid arguments quantity for this operator");
+            throw std::logic_error("Invalid arguments quantity for this operator");
         }
 
         return (is_binary_operator) ? processBinaryOperator(first, second)
