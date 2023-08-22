@@ -125,7 +125,7 @@ public:
 };
 
 class ClassicAlgebra : public IAlgebra {
-public:
+private:
     void initializeRules(const std::unordered_map<char, Operator>& rules) override {
         rules_.insert(default_algebra_rules.begin(), default_algebra_rules.end());
     }
