@@ -24,30 +24,36 @@ public:
     double processMathFunction(double first) const { return std::get<function>(action_)(first); }
 
 public:
-    double operator()(double first, double second = 0) const {
-        return (std::holds_alternative<binary_operator>(action_))
-                   ? processBinaryOperator(first, second)
-                   : processMathFunction(first);
+    double operator()(double first, double second = std::numeric_limits<double>::max()) const {
+        bool is_binary_operator = std::holds_alternative<binary_operator>(action_);
+
+        if ((is_binary_operator && second == std::numeric_limits<double>::max()) ||
+            (!is_binary_operator && second != std::numeric_limits<double>::max())) {
+            throw std::logic_error("Invalid arguments quantity for this operator");
+        }
+
+        return (is_binary_operator) ? processBinaryOperator(first, second)
+                                    : processMathFunction(first);
     }
 
     bool operator==(const Operator& compare) const {
-        bool isSame = std::visit([](auto&& arg1, auto&& arg2) {
-            using T1 = std::decay_t<decltype(arg1)>;
-            using T2 = std::decay_t<decltype(arg2)>;
+        bool isSame = std::visit(
+            [](auto&& arg1, auto&& arg2) {
+                using T1 = std::decay_t<decltype(arg1)>;
+                using T2 = std::decay_t<decltype(arg2)>;
 
-            if constexpr (std::is_same_v<T1, T2>) {
-                return true;
-            } else {
-                return false;
-            }
-        }, action_, compare.action_);
+                if constexpr (std::is_same_v<T1, T2>) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            action_, compare.action_);
 
         return isSame;
     }
 
-    bool operator!=(const Operator& compare) const {
-        return !operator==(compare);
-    }
+    bool operator!=(const Operator& compare) const { return !operator==(compare); }
 };
 
 inline const std::unordered_map<char, Operator> default_algebra_function_rules = {
@@ -71,6 +77,18 @@ inline const std::unordered_map<char, Operator> default_algebra_function_rules =
      calculations::Operator(std::function<double(double)>([](double a) { return std::log(a); }))}};
 
 inline const std::unordered_map<char, Operator> default_algebra_rules = {
+    {'+', calculations::Operator(
+              std::function<double(double, double)>([](double a, double b) { return a + b; }))},
+    {'-', calculations::Operator(
+              std::function<double(double, double)>([](double a, double b) { return a - b; }))},
+    {'*', calculations::Operator(
+              std::function<double(double, double)>([](double a, double b) { return a * b; }))},
+    {'/', calculations::Operator(
+              std::function<double(double, double)>([](double a, double b) { return a / b; }))},
+    {'%', calculations::Operator(std::function<double(double, double)>(
+              [](double a, double b) { return static_cast<int>(a) % static_cast<int>(b); }))},
+    {'^', calculations::Operator(std::function<double(double, double)>(
+              [](double a, double b) { return std::pow(a, b); }))},
 
 };
 
@@ -79,15 +97,15 @@ protected:
     std::unordered_map<char, Operator> rules_ = default_algebra_function_rules;
 
 private:
-    virtual void initialize_rules(){};
+    virtual void initialize_rules(const std::unordered_map<char, Operator>& rules){};
 
 public:
     IAlgebra() = default;
 
     void initialize_rules_interface(
-        const std::unordered_map<char, Operator>& rules = default_algebra_function_rules) {
-        if (!rules.empty() && rules == default_algebra_function_rules) {
-            initialize_rules();
+        const std::unordered_map<char, Operator>& rules = default_algebra_rules) {
+        if (!rules.empty() && rules != default_algebra_function_rules) {
+            initialize_rules(rules);
         }
     }
 
@@ -108,7 +126,7 @@ public:
 
 class ClassicAlgebra : public IAlgebra {
 public:
-    void initialize_rules() override {
+    void initialize_rules(const std::unordered_map<char, Operator>& rules) override {
         rules_.insert(default_algebra_rules.begin(), default_algebra_rules.end());
     }
 };

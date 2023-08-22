@@ -14,8 +14,9 @@ int main() {
         }
     }
 
-    calculations::IAlgebra* base_algebra = new calculations::ClassicAlgebra;
-    std::cout << std::endl << base_algebra->getRule('s')(2);
+    calculations::IAlgebra* base_algebra = new calculations::ClassicAlgebra();
+    base_algebra->initialize_rules_interface();
+    std::cout << std::endl << base_algebra->getRule('^')(2.14, 5.52);
 
     delete base_algebra;
 
