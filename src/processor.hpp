@@ -1,8 +1,9 @@
 #include <iostream>
+#include <variant>
+
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
-#include <variant>
 #include <vector>
 
 #ifndef __PREPROCESS_HPP__
@@ -11,21 +12,21 @@
 namespace preprocess {
 namespace exceptions {
 class InvalidFunctionException : public std::exception {
-    char *message;
+    const char *message;
 
 public:
-    InvalidFunctionException(char *msg) : message(msg) {}
+    InvalidFunctionException(const char *msg) : message(msg) {}
 
-    char *what() const noexcept { return message; }
+    const char *what() const noexcept { return message; }
 };
 
 class BracketSequenceException : public std::exception {
-    char *message;
+    const char *message;
 
 public:
-    BracketSequenceException(char *msg) : message(msg) {}
+    BracketSequenceException(const char *msg) : message(msg) {}
 
-    char *what() const noexcept { return message; }
+    const char *what() const noexcept { return message; }
 };
 }  // namespace exceptions
 
@@ -49,9 +50,14 @@ inline const std::unordered_map<std::string, char> available_functions = {
 
 inline const std::unordered_set<char> available_operators = {'+', '-', '*', '/', '^'};
 
+inline const std::unordered_map<char, int8_t> operators_priorities = {
+    {'(', 0}, {')', 0}, {'+', 2}, {'-', 2}, {'*', 3}, {'/', 3}, {'%', 3}, {'^', 4}, {'s', 4},
+    {'c', 4}, {'t', 4}, {'S', 4}, {'C', 4}, {'T', 4}, {'q', 4}, {'l', 4}, {'L', 4}, {'e', 4}};
+
 class DjkstraProcessor {
     using token_storage = std::vector<std::variant<Token<double>, Token<char>>>;
     using function_iterator = std::unordered_map<std::string, char>::const_iterator;
+    using tokens_order = std::stack<std::variant<Token<double>, Token<char>>>;
 
 private:
     void tokenizeInput(const std::string &input_sequence) {
@@ -63,7 +69,7 @@ private:
                 continue;
             else if (input_sequence[i] == 'x')
                 output_sequence.push_back(Token<char>(input_sequence[i]));
-            else if (std::isalpha(input_sequence[i]) || is_operator(input_sequence[i])) {
+            else if (std::isalpha(input_sequence[i]) || isOperator(input_sequence[i])) {
                 bool exception_condition = true;
                 auto it = available_operators.find(input_sequence[i]);
                 if (exception_condition &= (it != available_operators.end())) {
@@ -78,8 +84,7 @@ private:
                     output_sequence.push_back(Token<char>(function->second));
                     i += function->first.size() - 1;
                 } else {
-                    throw new exceptions::InvalidFunctionException(
-                        const_cast<char *>("Invalid function or operator\n"));
+                    throw exceptions::InvalidFunctionException("Invalid function or operator\n");
                 }
             } else if (input_sequence[i] == '(') {
                 bracket_quantity++;
@@ -95,8 +100,7 @@ private:
         }
 
         if (bracket_quantity != 0)
-            throw new exceptions::BracketSequenceException(
-                const_cast<char *>("Invalid bracket sequence"));
+            throw exceptions::BracketSequenceException("Invalid bracket sequence");
     }
 
     function_iterator getValidFunction(std::size_t current,
@@ -120,8 +124,34 @@ private:
         return std::pair<double, std::size_t>(std::stod(number_slice), counter - current);
     }
 
-    bool is_operator(char symbol) {
+    bool isOperator(char symbol) {
         return (available_operators.find(symbol) != available_operators.end());
+    }
+
+    void processBrackets(token_storage &inverse_notation, tokens_order &bracket_processor) {
+        if (!bracket_processor.empty()) {
+            auto token = std::get<Token<char>>(bracket_processor.top());
+            bracket_processor.pop();
+
+            while (token.getData() != '(') {
+                inverse_notation.push_back(token);
+                token = std::get<Token<char>>(bracket_processor.top());
+                bracket_processor.pop();
+            }
+        }
+    }
+
+    void shiftTokens(token_storage &inverse_notation, tokens_order &order) {
+        while (!order.empty()) {
+            auto token = std::get<Token<char>>(order.top());
+            order.pop();
+            inverse_notation.push_back(token);
+        }
+    }
+
+    int8_t priorityDifference(char first_operator, char second_operator) {
+        return (operators_priorities.find(first_operator)->second -
+                operators_priorities.find(second_operator)->second);
     }
 
 public:
@@ -131,8 +161,44 @@ public:
     DjkstraProcessor(const DjkstraProcessor &src) = delete;
     DjkstraProcessor(DjkstraProcessor &&) = delete;
 
-    void inverse_polish_notation(const std::string &input_sequence) {
-        tokenizeInput(input_sequence);
+    token_storage inversePolishNotation(const std::string &input_sequence) {
+        if (output_sequence.empty()) tokenizeInput(input_sequence);
+        token_storage postfix_inverse_notation;
+        tokens_order bracket_processor;
+
+        for (auto token : output_sequence) {
+            bool is_double_condition = std::holds_alternative<Token<double>>(token);
+            auto token_data = (is_double_condition) ? std::get<Token<double>>(token).getData()
+                                                    : std::get<Token<char>>(token).getData();
+
+            if (is_double_condition) {
+                postfix_inverse_notation.push_back(token);
+            } else if (!is_double_condition && token_data == 'x') {
+                postfix_inverse_notation.push_back(token);
+            } else if (!is_double_condition && token_data == 'e') {
+                postfix_inverse_notation.push_back(Token<double>(std::exp(1)));
+            } else {
+                if (token_data == '(') {
+                    bracket_processor.push(token);
+                } else if (token_data == ')') {
+                    processBrackets(postfix_inverse_notation, bracket_processor);
+                } else {
+                    while (
+                        !bracket_processor.empty() &&
+                        priorityDifference(std::get<Token<char>>(bracket_processor.top()).getData(),
+                                           token_data) >= 0) {
+                        postfix_inverse_notation.push_back(
+                            std::get<Token<char>>(bracket_processor.top()));
+                        bracket_processor.pop();
+                    }
+
+                    bracket_processor.push(token);
+                }
+            }
+        }
+        shiftTokens(postfix_inverse_notation, bracket_processor);
+
+        return postfix_inverse_notation;
     }
 };
 }  // namespace preprocess
